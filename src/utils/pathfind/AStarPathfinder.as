@@ -35,46 +35,48 @@ import flash.geom.Point;
 public class AStarPathfinder {
 
 	/**
-	 * Two Dimensional Array Containing Obstacle Map marked with 1 or 0 values where 1 is obstacle
+	 * Two Dimensional Array/Vector Containing Obstacle Map marked with 1 or 0 values where 1 is obstacle
 	 */
 	private var map:Array;
-	/**
-	 * Two Dimensional Array Containing Path Length Values Durring Path Calcualtion
-	 */
-	private var tmpMap:Array;
-
-	/**
-	 * Final Path points Array
-	 */
-	private var pathArr:Array;
 
 	/**
 	 * Flag to identify if diagonal movement is allowed on the map
 	 */
-	private var diagonal:Boolean;
+	private var canGoDiagonal:Boolean;
 
-	/**
-	 * Temporary Array to keep array of previously visited point durring path calculation
-	 */
-	private var previousPoints:Array;
+//	/**
+//	 * Temporary Array to keep array of previously visited point durring path calculation
+//	 */
+//	private var previousPoints:Array;
 
 	/**
 	 * Map X Dimension
 	 */
-	private var dimensionX:Number;
+	private var columnCount:Number;
 
 	/**
 	 * Map Y Dimension
 	 */
-	private var dimensionY:Number;
+	private var rowCount:Number;
 
-	public var realisticPath:Boolean;
+	/**
+	 * ???
+	 */
+	private var useRealisticPath:Boolean = false;
+
+
+	/**
+	 * remove middle points in straight line.
+	 */
+	private var useCompressedPath:Boolean = true;
 
 	/**
 	 * Empty Constructor (Nothing to do here)
 	 */
-	public function AStarPathfinder() {
-		realisticPath = false;
+	public function AStarPathfinder(useRealisticPath:Boolean = false, canGoDiagonal:Boolean = false, useCompressedPath:Boolean = true) {
+		this.useRealisticPath = useRealisticPath;
+		this.canGoDiagonal = canGoDiagonal;
+		this.useCompressedPath = useCompressedPath;
 	}
 
 	/**
@@ -82,22 +84,25 @@ public class AStarPathfinder {
 	 * Obstacle map is a two Dimensional Array Containing 1 or 0 values where 1 is obstacle
 	 * Also please provide map dimensions
 	 */
-	public function loadMap(m:Array, dX:Number, dY:Number, dataName:String):void {
-		map = m;
-		tmpMap = new Array();
-		dimensionX = dX;
-		dimensionY = dY;
+	public function loadMap(map:Array, columnCount:int, rowCount:int, dataName:String):void {
+		this.map = map;
+		this.columnCount = columnCount;
+		this.rowCount = rowCount;
 	}
 
 	/**
 	 * Returns Array of path points for given start and end points,
 	 * pass diag = false if diagonal movements are not allowed on the map
 	 */
-	public function getPath(startPoint:Point, endPoint:Point, diag:Boolean = true):Array {
-		diagonal = diag;
-		for (var i:Number = 0; i < dimensionX; i++) {
-			tmpMap[i] = new Array();
-			for (var j:Number = 0; j < dimensionY; j++) {
+	public function getPath(startPoint:Point, endPoint:Point, doIncludeEnds:Boolean = true):Array {
+		var retVal:Array = new Array();
+
+		var tmpMap:Array = [];
+		for (var i:Number = 0; i < columnCount; i++) {
+			if (tmpMap[i] == null) {
+				tmpMap[i] = new Array();
+			}
+			for (var j:Number = 0; j < rowCount; j++) {
 				tmpMap[i][j] = 0;
 			}
 		}
@@ -105,20 +110,28 @@ public class AStarPathfinder {
 		tmpMap[startPoint.x][startPoint.y] = 1;
 		tmpMap[endPoint.x][endPoint.y] = -1;
 
-		previousPoints = new Array;
+		var previousPoints:Array = new Array;
 		previousPoints.push(startPoint);
 
-		var iterationsCount:Number = iterate();
+		var iterationsCount:Number = iterate(tmpMap, previousPoints);
 
-		pathArr = new Array();
-		pathArr = getPathArray(endPoint, iterationsCount);
+		retVal = getPathArray(tmpMap, endPoint, iterationsCount, retVal);
 
-		if (realisticPath) {
-			pathArr = fixRealisticPath(pathArr);
+		if (doIncludeEnds) {
+			retVal.push(endPoint);
+		} else {
+			retVal.shift();
 		}
 
-		pathArr = shortenPathArray(pathArr);
-		return pathArr;
+		if (useRealisticPath) {
+			retVal = fixRealisticPath(retVal);
+		}
+		if (useCompressedPath) {
+			retVal = shortenPathArray(retVal);
+		}
+
+
+		return retVal;
 	}
 
 	/**
@@ -163,7 +176,7 @@ public class AStarPathfinder {
 	/**
 	 * Returns Array of Path Points for Given tempMap path lenght array
 	 */
-	private function getPathArray(pt:Point, iteration:Number):Array {
+	private function getPathArray(tmpMap:Array, pt:Point, iteration:Number, pathArr:Array):Array {
 		var tmpPt:Point;
 		var i:Number = pt.x;
 		var j:Number = pt.y;
@@ -176,51 +189,51 @@ public class AStarPathfinder {
 		if (i > 0 && tmpMap[i - 1][j] == iteration) {
 			tmpPt = new Point(i - 1, j);
 			pathArr.push(tmpPt);
-			getPathArray(tmpPt, iteration - 1);
+			getPathArray(tmpMap, tmpPt, iteration - 1, pathArr);
 			return pathArr;
 		}
 		if (j > 0 && tmpMap[i][j - 1] == iteration) {
 			tmpPt = new Point(i, j - 1);
 			pathArr.push(tmpPt);
-			getPathArray(tmpPt, iteration - 1);
+			getPathArray(tmpMap, tmpPt, iteration - 1, pathArr);
 			return pathArr;
 		}
-		if (i < dimensionX && tmpMap[i + 1][j] == iteration) {
+		if (i < columnCount && tmpMap[i + 1][j] == iteration) {
 			tmpPt = new Point(i + 1, j);
 			pathArr.push(tmpPt);
-			getPathArray(tmpPt, iteration - 1);
+			getPathArray(tmpMap, tmpPt, iteration - 1, pathArr);
 			return pathArr;
 		}
-		if (j < dimensionY && tmpMap[i][j + 1] == iteration) {
+		if (j < rowCount && tmpMap[i][j + 1] == iteration) {
 			tmpPt = new Point(i, j + 1);
 			pathArr.push(tmpPt);
-			getPathArray(tmpPt, iteration - 1);
+			getPathArray(tmpMap, tmpPt, iteration - 1, pathArr);
 			return pathArr;
 		}
 
-		if (diagonal) {
+		if (canGoDiagonal) {
 			if (i > 0 && j > 0 && tmpMap[i - 1][j - 1] == iteration) {
 				tmpPt = new Point(i - 1, j - 1);
 				pathArr.push(tmpPt);
-				getPathArray(tmpPt, iteration - 1);
+				getPathArray(tmpMap, tmpPt, iteration - 1, pathArr);
 				return pathArr;
 			}
-			if (i < dimensionX && j < dimensionY && tmpMap[i + 1][j + 1] == iteration) {
+			if (i < columnCount && j < rowCount && tmpMap[i + 1][j + 1] == iteration) {
 				tmpPt = new Point(i + 1, j + 1);
 				pathArr.push(tmpPt);
-				getPathArray(tmpPt, iteration - 1);
+				getPathArray(tmpMap, tmpPt, iteration - 1, pathArr);
 				return pathArr;
 			}
-			if (i > 0 && j < dimensionY && tmpMap[i - 1][j + 1] == iteration) {
+			if (i > 0 && j < rowCount && tmpMap[i - 1][j + 1] == iteration) {
 				tmpPt = new Point(i - 1, j + 1);
 				pathArr.push(tmpPt);
-				getPathArray(tmpPt, iteration - 1);
+				getPathArray(tmpMap, tmpPt, iteration - 1, pathArr);
 				return pathArr;
 			}
-			if (j > 0 && i < dimensionX && tmpMap[i + 1][j - 1] == iteration) {
+			if (j > 0 && i < columnCount && tmpMap[i + 1][j - 1] == iteration) {
 				tmpPt = new Point(i + 1, j - 1);
 				pathArr.push(tmpPt);
-				getPathArray(tmpPt, iteration - 1);
+				getPathArray(tmpMap, tmpPt, iteration - 1, pathArr);
 				return pathArr;
 			}
 		}
@@ -231,7 +244,7 @@ public class AStarPathfinder {
 	/**
 	 * Iterates through map to find best rout for current step
 	 */
-	private function iterate(iteration:Number = 1):Number {
+	private function iterate(tmpMap:Array, previousPoints:Array, iteration:Number = 1):Number {
 		var newPointArr:Array = new Array();
 		for (var key:Number = 0; key < previousPoints.length; key++) {
 			var i:Number = previousPoints[key].x;
@@ -242,19 +255,19 @@ public class AStarPathfinder {
 				return iteration;
 			if (j > 0 && tmpMap[i][j - 1] == -1)
 				return iteration;
-			if (i < dimensionX && tmpMap[i + 1][j] == -1)
+			if (i < columnCount && tmpMap[i + 1][j] == -1)
 				return iteration;
-			if (j < dimensionY && tmpMap[i][j + 1] == -1)
+			if (j < rowCount && tmpMap[i][j + 1] == -1)
 				return iteration;
-			if (diagonal) {
+			if (canGoDiagonal) {
 				if (i > 0 && j > 0 && tmpMap[i - 1][j - 1] == -1)
 					return iteration;
-				if (i < (dimensionX - 2) && j < (dimensionY - 2) && tmpMap[i + 1][j + 1] == -1)
+				if (i < (columnCount - 2) && j < (rowCount - 2) && tmpMap[i + 1][j + 1] == -1)
 					return iteration;
-				if (i > 0 && j < (dimensionY - 2) && tmpMap[i - 1][j + 1] == -1) {
+				if (i > 0 && j < (rowCount - 2) && tmpMap[i - 1][j + 1] == -1) {
 					return iteration;
 				}
-				if (j > 0 && i < (dimensionX - 2) && tmpMap[i + 1][j - 1] == -1)
+				if (j > 0 && i < (columnCount - 2) && tmpMap[i + 1][j - 1] == -1)
 					return iteration;
 			}
 
@@ -267,38 +280,37 @@ public class AStarPathfinder {
 				tmpMap[i][j - 1] = iteration + 1;
 				newPointArr.push(new Point(i, j - 1));
 			}
-			if (i < (dimensionX - 2) && tmpMap[i + 1][j] == 0 && map[i + 1][j] != 1) {
+			if (i < (columnCount - 2) && tmpMap[i + 1][j] == 0 && map[i + 1][j] != 1) {
 				tmpMap[i + 1][j] = iteration + 1;
 				newPointArr.push(new Point(i + 1, j));
 			}
-			if (j < (dimensionY - 2) && tmpMap[i][j + 1] == 0 && map[i][j + 1] != 1) {
+			if (j < (rowCount - 2) && tmpMap[i][j + 1] == 0 && map[i][j + 1] != 1) {
 				tmpMap[i][j + 1] = iteration + 1;
 				newPointArr.push(new Point(i, j + 1));
 			}
-			if (diagonal) {
+			if (canGoDiagonal) {
 				if (i > 0 && j > 0 && tmpMap[i - 1][j - 1] == 0 && map[i - 1][j - 1] != 1) {
 					tmpMap[i - 1][j - 1] = iteration + 1;
 					newPointArr.push(new Point(i - 1, j - 1));
 				}
-				if (i < (dimensionX - 2) && j < (dimensionY - 2) && tmpMap[i + 1][j + 1] == 0 && map[i + 1][j + 1] != 1) {
+				if (i < (columnCount - 2) && j < (rowCount - 2) && tmpMap[i + 1][j + 1] == 0 && map[i + 1][j + 1] != 1) {
 					tmpMap[i + 1][j + 1] = iteration + 1;
 					newPointArr.push(new Point(i + 1, j + 1));
 				}
-				if (i > 0 && j < (dimensionY - 2) && tmpMap[i - 1][j + 1] == 0 && map[i - 1][j + 1] != 1) {
+				if (i > 0 && j < (rowCount - 2) && tmpMap[i - 1][j + 1] == 0 && map[i - 1][j + 1] != 1) {
 					tmpMap[i - 1][j + 1] = iteration + 1;
 					newPointArr.push(new Point(i - 1, j + 1));
 				}
-				if (j > 0 && i < (dimensionX - 2) && tmpMap[i + 1][j - 1] == 0 && map[i + 1][j - 1] != 1) {
+				if (j > 0 && i < (columnCount - 2) && tmpMap[i + 1][j - 1] == 0 && map[i + 1][j - 1] != 1) {
 					tmpMap[i + 1][j - 1] = iteration + 1;
 					newPointArr.push(new Point(i + 1, j - 1));
 				}
 			}
 		}
-		if (iteration > dimensionX * dimensionY) {
+		if (iteration > columnCount * rowCount) {
 			return iteration;
 		}
-		previousPoints = newPointArr;
-		iteration = iterate(iteration + 1);
+		iteration = iterate(tmpMap, newPointArr, iteration + 1);
 		return iteration;
 	}
 
