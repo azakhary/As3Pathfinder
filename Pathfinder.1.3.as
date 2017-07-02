@@ -7,7 +7,7 @@ targeted for the Flash player platform
 
 http://code.google.com/p/pathfinder/
 
-Copyright (c) 2010 - 3000 Avetis Zakharyan, All Rights Reserved.
+Made by Avetis Zakharyan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
