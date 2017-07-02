@@ -30,8 +30,8 @@ public class Main extends Sprite {
 
 		trace("hi..");
 
-		var startPoint:Point = new Point(1, 1);
-		var endPoint:Point = new Point(8, 8);
+		var startPoint:Point = new Point(0, 0);
+		var endPoint:Point = new Point(13, 8);
 
 		addChild(debugLayer);
 
@@ -41,6 +41,11 @@ public class Main extends Sprite {
 			[0, 0, 1, 1, 0, 0, 0, 0, 0, 0], //
 			[0, 0, 1, 1, 0, 0, 0, 0, 0, 0], //
 			[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], //
+			[0, 0, 1, 1, 1, 1, 1, 1, 0, 0], //
+			[0, 0, 1, 1, 0, 0, 0, 0, 0, 0], //
+			[0, 0, 1, 1, 0, 0, 0, 0, 0, 0], //
+			[0, 0, 1, 1, 0, 0, 1, 1, 1, 1], //
+			[0, 0, 1, 1, 0, 0, 0, 0, 0, 0], //
 			[0, 0, 1, 1, 0, 0, 0, 0, 0, 0], //
 			[0, 0, 1, 1, 0, 0, 0, 0, 0, 0], //
 			[0, 0, 1, 1, 0, 0, 0, 0, 0, 0], //
@@ -49,8 +54,8 @@ public class Main extends Sprite {
 		];
 
 		var pathFinder:AStarPathfinder = new AStarPathfinder(false, false, false);
-		pathFinder.loadMap(map, 10, 10, "");
-		var path:Array = pathFinder.getPath(startPoint, endPoint, false);
+		pathFinder.loadMap(map);
+		var path:Vector.<Point> = pathFinder.getPath(startPoint, endPoint, true);
 
 		trace(path);
 		// draw grid.
@@ -83,12 +88,15 @@ public class Main extends Sprite {
 		debugLayer.graphics.endFill();
 
 		debugLayer.graphics.lineStyle(3, 0xFF00FF, 0.5);
-		debugLayer.graphics.moveTo(path[0].x * CELL_SIZE + CELL_SIZE_HALF, path[0].y * CELL_SIZE + CELL_SIZE_HALF);
-		debugLayer.graphics.drawCircle(path[0].x * CELL_SIZE + CELL_SIZE_HALF, path[0].y * CELL_SIZE + CELL_SIZE_HALF, CELL_SIZE_EIGHT);
-		for (var i:int = 1; i < path.length; i++) {
-			debugLayer.graphics.moveTo(path[i-1].x * CELL_SIZE + CELL_SIZE_HALF, path[i-1].y * CELL_SIZE + CELL_SIZE_HALF);
-			debugLayer.graphics.lineTo(path[i].x * CELL_SIZE + CELL_SIZE_HALF, path[i].y * CELL_SIZE + CELL_SIZE_HALF);
-			debugLayer.graphics.drawCircle(path[i].x * CELL_SIZE + CELL_SIZE_HALF, path[i].y * CELL_SIZE + CELL_SIZE_HALF, CELL_SIZE_EIGHT);
+
+		if (path.length > 1) {
+			debugLayer.graphics.moveTo(path[0].x * CELL_SIZE + CELL_SIZE_HALF, path[0].y * CELL_SIZE + CELL_SIZE_HALF);
+			debugLayer.graphics.drawCircle(path[0].x * CELL_SIZE + CELL_SIZE_HALF, path[0].y * CELL_SIZE + CELL_SIZE_HALF, CELL_SIZE_EIGHT);
+			for (var i:int = 1; i < path.length; i++) {
+				debugLayer.graphics.moveTo(path[i - 1].x * CELL_SIZE + CELL_SIZE_HALF, path[i - 1].y * CELL_SIZE + CELL_SIZE_HALF);
+				debugLayer.graphics.lineTo(path[i].x * CELL_SIZE + CELL_SIZE_HALF, path[i].y * CELL_SIZE + CELL_SIZE_HALF);
+				debugLayer.graphics.drawCircle(path[i].x * CELL_SIZE + CELL_SIZE_HALF, path[i].y * CELL_SIZE + CELL_SIZE_HALF, CELL_SIZE_EIGHT);
+			}
 		}
 
 	}

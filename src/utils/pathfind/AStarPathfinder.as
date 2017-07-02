@@ -28,6 +28,10 @@
  SOFTWARE.
 
  */
+
+
+// TODO: Algorithm can't handle edge cells!
+
 package utils.pathfind {
 
 import flash.geom.Point;
@@ -70,6 +74,8 @@ public class AStarPathfinder {
 	 */
 	private var useCompressedPath:Boolean = true;
 
+	private var tmpMap:Vector.<Vector.<int>>;
+
 	/**
 	 * Empty Constructor (Nothing to do here)
 	 */
@@ -84,23 +90,37 @@ public class AStarPathfinder {
 	 * Obstacle map is a two Dimensional Array Containing 1 or 0 values where 1 is obstacle
 	 * Also please provide map dimensions
 	 */
-	public function loadMap(map:Array, columnCount:int, rowCount:int, dataName:String):void {
+	public function loadMap(map:Array, columnCount:int = -1, rowCount:int = -1, dataName:String = "key"):void {
 		this.map = map;
-		this.columnCount = columnCount;
-		this.rowCount = rowCount;
+		if (columnCount == -1) {
+			this.columnCount = this.map.length;
+		} else {
+			this.columnCount = columnCount;
+		}
+		if (rowCount == -1) {
+			if (this.map.length == 0) {
+				this.rowCount = 0;
+			} else {
+				this.rowCount = this.map[0].length;
+			}
+		} else {
+			this.rowCount = rowCount;
+		}
 	}
 
 	/**
-	 * Returns Array of path points for given start and end points,
+	 * Returns Vector of path points for given start and end points,
 	 * pass diag = false if diagonal movements are not allowed on the map
 	 */
-	public function getPath(startPoint:Point, endPoint:Point, doIncludeEnds:Boolean = true):Array {
-		var retVal:Array = new Array();
+	public function getPath(startPoint:Point, endPoint:Point, doIncludeEnds:Boolean = true):Vector.<Point> {
+		var retVal:Vector.<Point> = new <Point>[];
 
-		var tmpMap:Array = [];
+		if (tmpMap == null) {
+			tmpMap = new Vector.<Vector.<int>>(columnCount);
+		}
 		for (var i:Number = 0; i < columnCount; i++) {
 			if (tmpMap[i] == null) {
-				tmpMap[i] = new Array();
+				tmpMap[i] = new Vector.<int>(rowCount);
 			}
 			for (var j:Number = 0; j < rowCount; j++) {
 				tmpMap[i][j] = 0;
@@ -137,8 +157,8 @@ public class AStarPathfinder {
 	/**
 	 * Fixes path to more realistic one even if not shortest
 	 */
-	private function fixRealisticPath(path:Array):Array {
-		var newArr:Array = new Array();
+	private function fixRealisticPath(path:Vector.<Point>):Vector.<Point> {
+		var newArr:Vector.<Point> = new <Point>[];
 		for (var i:Number = 1; i < path.length; i++) {
 			newArr.push(path[i - 1]);
 			if (path[i].x - path[i - 1].x == 1 && path[i].y - path[i - 1].y == 1 && map[path[i - 1].x][path[i - 1].y + 1] != 1 && map[path[i - 1].x + 1][path[i - 1].y] == 1) {
@@ -154,8 +174,8 @@ public class AStarPathfinder {
 	/**
 	 * Optimises Path Arrayt to have less points, and counts only turning points
 	 */
-	private function shortenPathArray(path:Array):Array {
-		var shortPath:Array = new Array();
+	private function shortenPathArray(path:Vector.<Point>):Vector.<Point> {
+		var shortPath:Vector.<Point> = new <Point>[];
 		var shortIter:int = 0;
 		var diffX:Number = 0;
 		var diffY:Number = 0;
@@ -176,7 +196,7 @@ public class AStarPathfinder {
 	/**
 	 * Returns Array of Path Points for Given tempMap path lenght array
 	 */
-	private function getPathArray(tmpMap:Array, pt:Point, iteration:Number, pathArr:Array):Array {
+	private function getPathArray(tmpMap:Vector.<Vector.<int>>, pt:Point, iteration:Number, pathArr:Vector.<Point>):Vector.<Point> {
 		var tmpPt:Point;
 		var i:Number = pt.x;
 		var j:Number = pt.y;
@@ -238,13 +258,19 @@ public class AStarPathfinder {
 			}
 		}
 
-		return new Array();
+		return new <Point>[];
 	}
 
 	/**
 	 * Iterates through map to find best rout for current step
 	 */
-	private function iterate(tmpMap:Array, previousPoints:Array, iteration:Number = 1):Number {
+	private function iterate(tmpMap:Vector.<Vector.<int>>, previousPoints:Array, iteration:Number = 1):Number {
+		CONFIG::debug {
+			trace(" ################################ iteration: ", iteration);
+			trace(" previousPoints: ", previousPoints);
+			traceArray(tmpMap);
+		}
+
 		var newPointArr:Array = new Array();
 		for (var key:Number = 0; key < previousPoints.length; key++) {
 			var i:Number = previousPoints[key].x;
@@ -312,6 +338,21 @@ public class AStarPathfinder {
 		}
 		iteration = iterate(tmpMap, newPointArr, iteration + 1);
 		return iteration;
+	}
+
+	CONFIG::debug
+	private function traceArray(tmpMap:Vector.<Vector.<int>>):void {
+		for (var i:int = 0; i < columnCount; i++) {
+			var row:Vector.<int> = tmpMap[i];
+			var traceStr:String = "";
+			for (var j:int = 0; j < rowCount; j++) {
+				if (traceStr != "") {
+					traceStr += "\t";
+				}
+				traceStr += row[j];
+			}
+			trace(traceStr);
+		}
 	}
 
 }
